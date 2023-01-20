@@ -9,7 +9,11 @@ public class AI : MonoBehaviour
     {
         Patrolling,
 
-        Chasing
+        Chasing,
+
+        Waiting
+
+        //Attacking
     }
 
     State currentState;
@@ -23,6 +27,11 @@ public class AI : MonoBehaviour
     public float visionRange;
 
     public Transform player;
+
+    [SerializeField] private int sec;
+
+    private float remaining = 5f;
+
    
     // Start is called before the first frame update
     void Awake()
@@ -33,8 +42,6 @@ public class AI : MonoBehaviour
     void Start()
     {
         currentState = State.Patrolling;
-
-        destinationIndex = Random.Range(0, destinationPoints.Length);
     }
 
     // Update is called once per frame
@@ -51,6 +58,12 @@ public class AI : MonoBehaviour
             default:
                 Chase();
             break;
+            case State.Waiting:
+                Wait();
+            break;
+            /*case State.Attacking:
+                Attack();
+            break;*/
         }
     }
 
@@ -61,7 +74,17 @@ public class AI : MonoBehaviour
 
         if(Vector3.Distance(transform.position, destinationPoints[destinationIndex].position) < 1)
         {
-            destinationIndex = Random.Range(0, destinationPoints.Length);
+            if(destinationIndex < destinationPoints.Length)
+            {
+                destinationIndex += 1;
+            }
+            
+            if(destinationIndex == destinationPoints.Length)
+            {
+                destinationIndex = 0;
+            }
+            
+            currentState = State.Waiting;
         }
 
         if(Vector3.Distance(transform.position, player.position) < visionRange)
@@ -79,6 +102,23 @@ public class AI : MonoBehaviour
             currentState = State.Patrolling;
         }
     }
+
+    void Wait()
+        {
+
+            remaining -= Time.deltaTime;
+
+            if(remaining <= 0)
+            {
+                currentState = State.Patrolling;
+
+                remaining = 5;
+            }
+
+            
+        }
+    
+    
 
     void OnDrawGizmos()
     {
