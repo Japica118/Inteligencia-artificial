@@ -11,9 +11,9 @@ public class AI : MonoBehaviour
 
         Chasing,
 
-        Waiting
+        Waiting,
 
-        //Attacking
+        Attacking
     }
 
     State currentState;
@@ -32,7 +32,8 @@ public class AI : MonoBehaviour
 
     private float remaining = 5f;
 
-   
+    [SerializeField] private float attackRange;
+
     // Start is called before the first frame update
     void Awake()
     {
@@ -58,12 +59,13 @@ public class AI : MonoBehaviour
             default:
                 Chase();
             break;
+        
             case State.Waiting:
                 Wait();
             break;
-            /*case State.Attacking:
+            case State.Attacking:
                 Attack();
-            break;*/
+            break;
         }
     }
 
@@ -92,7 +94,7 @@ public class AI : MonoBehaviour
             currentState = State.Chasing;
         }
     }
-    
+
     void Chase()
     {
         agent.destination = player.position;
@@ -100,6 +102,13 @@ public class AI : MonoBehaviour
         if(Vector3.Distance(transform.position, player.position) > visionRange)
         {
             currentState = State.Patrolling;
+        }
+
+         if(Vector3.Distance(transform.position, player.position) < attackRange)
+        {
+            Debug.Log("Estoy atacando");
+
+            currentState = State.Attacking;
         }
     }
 
@@ -118,6 +127,13 @@ public class AI : MonoBehaviour
             
         }
     
+    void Attack()
+    {
+        if(Vector3.Distance(transform.position, player.position) > attackRange)
+        {
+            currentState = State.Chasing;
+        }
+    }
     
 
     void OnDrawGizmos()
@@ -130,5 +146,10 @@ public class AI : MonoBehaviour
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, visionRange);
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
     }
+
+    
 }
