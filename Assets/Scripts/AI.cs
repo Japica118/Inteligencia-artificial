@@ -11,6 +11,8 @@ public class AI : MonoBehaviour
 
         Chasing,
 
+        Travelling,
+
         Waiting,
 
         Attacking
@@ -24,16 +26,25 @@ public class AI : MonoBehaviour
     
     int destinationIndex = 0;
 
-    public float visionRange;
+    [SerializeField] private float visionRange;
+
+    [SerializeField] [Range(0, 360)] private float visionAngle;
+
+    [SerializeField] private LayerMask obstaclesMask;
 
     public Transform player;
 
-    [SerializeField] private int sec;
+    //[SerializeField] private int sec;
 
     private float remaining = 5f;
 
     [SerializeField] private float attackRange;
 
+    [SerializeField] float patrolRange = 10f;
+
+    [SerializeField] private Transform patrolZone;
+
+   
     // Start is called before the first frame update
     void Awake()
     {
@@ -56,10 +67,9 @@ public class AI : MonoBehaviour
             case State.Chasing:
                 Chase();
             break;
-            default:
-                Chase();
+            case State.Travelling:
+                Travel();
             break;
-        
             case State.Waiting:
                 Wait();
             break;
@@ -70,7 +80,7 @@ public class AI : MonoBehaviour
     }
 
     
-    void Patrol()
+    /*void Patrol()
     {
         agent.destination = destinationPoints[destinationIndex].position;
 
@@ -93,13 +103,63 @@ public class AI : MonoBehaviour
         {
             currentState = State.Chasing;
         }
+    }*/
+
+     void Patrol()
+    {
+        Vector3 randomPosition;
+
+        if(RandomPoint(patrolZone.position, patrolRange, out randomPosition))
+        {
+            agent.destination = randomPosition;
+
+            Debug.DrawRay(randomPosition, Vector3.up * 5, Color.blue, 5f);
+        }
+
+        if(FindTarget())
+        {
+            currentState = State.Chasing;
+        }
+
+        currentState = State.Travelling;
+    }
+
+     bool RandomPoint(Vector3 center, float range, out Vector3 point)
+    {
+        Vector3 randomPoint = center + Random.insideUnitSphere * range;
+
+        NavMeshHit hit;
+
+        if(NavMesh.SamplePosition(randomPoint, out hit, 4, NavMesh.AllAreas))
+        {
+            point = hit.position;
+
+            return true;
+        }
+
+        point = Vector3.zero;
+        
+        return false;
+    }
+
+    void Travel()
+    {
+        if(agent.remainingDistance <= 0.2)
+        {
+            currentState = State.Patrolling;
+        }
+
+        if(FindTarget())
+        {
+            currentState = State.Chasing;
+        }
     }
 
     void Chase()
     {
         agent.destination = player.position;
 
-        if(Vector3.Distance(transform.position, player.position) > visionRange)
+         if(!FindTarget())
         {
             currentState = State.Patrolling;
         }
@@ -134,6 +194,26 @@ public class AI : MonoBehaviour
             currentState = State.Chasing;
         }
     }
+
+    bool FindTarget()
+    {
+        if(Vector3.Distance(transform.position, player.position) < visionRange)
+        {
+            Vector3 directionToTarget = (player.position - transform.position).normalized;
+
+            if(Vector3.Angle(transform.forward, directionToTarget) < visionAngle / 2)
+            {
+                float distanceToTarget = Vector3.Distance(transform.position, player.position);
+
+                if(!Physics.Raycast(transform.position, directionToTarget, distanceToTarget, obstaclesMask))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
     
 
     void OnDrawGizmos()
@@ -149,6 +229,9 @@ public class AI : MonoBehaviour
 
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, attackRange);
+
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(patrolZone.position, patrolRange);
     }
 
     
